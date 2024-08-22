@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: 0 23 */3 * * 
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: v0.0.1
+      - name: Install && Configuration
+        run: |
+          sudo apt-get -qq update
+          sudo apt-get -y -qq install wget
+      - name: Get GeoIP2 DBs
+        run: |
+          bash download.bash ASN ${{ secrets.APP_KEY }}
+          bash download.bash City ${{ secrets.APP_KEY }}
+          bash download.bash Country ${{ secrets.APP_KEY }}
+      - name: Commit files
+        env:
+          TZ: Asia/Shanghai
+        run: |
+          git config --local user.email "sxyx2008@163.com"
+          git config --local user.name "github-actions"
+          git add -A
+          git commit -m "Auto Sync `date -R` - [Skip GitHub Action]"
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+          force: true
